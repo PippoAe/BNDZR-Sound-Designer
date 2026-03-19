@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BNDZR Buzzer Sound Designer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* ── Design Tokens (mirrored from BNDZR web_ui styles.css) ── */
+        :root {
+            /* Brand */
+            --amber: #f59e0b;
+            --amber-bright: #fbbf24;
+            --amber-deep: #d97706;
+            --amber-glow: rgba(245, 158, 11, 0.15);
+            --amber-shadow: rgba(245, 158, 11, 0.25);
+
+            /* Semantic */
+            --success: #22c55e;
+            --danger: #ef4444;
+            --danger-deep: #dc2626;
+            --info: #3b82f6;
+
+            /* Surface — Light */
+            --bg-base: #f0f1f5;
+            --bg-surface: #ffffff;
+            --bg-raised: #f7f8fa;
+            --bg-inset: #ebedf2;
+            --border: #d8dbe3;
+            --border-subtle: #e8eaf0;
+
+            /* Text — Light */
+            --text: #1e2028;
+            --text-secondary: #5f6370;
+            --text-muted: #8b8f9e;
+            --text-on-amber: #fff;
+
+            /* Interactive */
+            --hover: rgba(0, 0, 0, 0.04);
+            --selected: rgba(245, 158, 11, 0.08);
+            --input-bg: #ffffff;
+
+            /* Elevation */
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+            --shadow-lg: 0 12px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+            --shadow-glow: 0 0 20px var(--amber-glow);
+
+            /* Radii */
+            --radius-xs: 4px;
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+
+            /* Motion */
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --duration: 200ms;
+
+            /* Typography */
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.85rem;
+            --font-size-base: 0.95rem;
+            --font-size-lg: 1.1rem;
+            --font-size-xl: 1.35rem;
+            --font-size-2xl: 1.8rem;
+
+            /* Piano */
+            --piano-bg: #1a1d24;
+        }
+
+        /* ── Dark Mode ── */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-base: #0e1015;
+                --bg-surface: #181b22;
+                --bg-raised: #1e2129;
+                --bg-inset: #14161c;
+                --border: #2a2e38;
+                --border-subtle: #22252e;
+                --text: #e2e4ea;
+                --text-secondary: #9498a5;
+                --text-muted: #6b6f7e;
+                --text-on-amber: #451a03;
+                --hover: rgba(255, 255, 255, 0.04);
+                --selected: rgba(245, 158, 11, 0.1);
+                --input-bg: #1e2129;
+                --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+                --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+                --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
+                --piano-bg: #0a0c10;
+            }
+        }
+
+        /* ── Scrollbars ── */
+        * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ── Reset ── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-base);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.55;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-surface);
+            border-radius: var(--radius-xl);
+            padding: 30px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: var(--font-size-2xl);
+            background: linear-gradient(45deg, var(--amber), var(--amber-deep));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .wide-section { grid-column: 1 / -1; }
+
+        .keyboard-section {
+            grid-column: 1 / -1;
+            margin-bottom: 20px;
+        }
+
+        /* ── Piano Keyboard ── */
+        .piano-keyboard {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            background: var(--piano-bg);
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow-x: auto;
+        }
+
+        .key {
+            position: relative;
+            margin: 0 1px;
+            user-select: none;
+            cursor: pointer;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 11px;
+            transition: all 0.1s var(--ease);
+        }
+
+        .white-key {
+            width: 40px;
+            height: 120px;
+            background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%);
+            border: 1px solid #ccc;
+            border-radius: 0 0 5px 5px;
+            color: #666;
+            padding-bottom: 10px;
+        }
+
+        .white-key:hover {
+            background: linear-gradient(to bottom, #f8f8f8 0%, #e8e8e8 100%);
+        }
+
+        .white-key.active {
+            background: var(--amber);
+            color: var(--text-on-amber);
+            transform: translateY(2px);
+            box-shadow: 0 0 12px var(--amber-shadow);
+        }
+
+        .black-key {
+            width: 28px;
+            height: 80px;
+            background: linear-gradient(to bottom, #2d3748 0%, #1a202c 100%);
+            border: 1px solid #000;
+            border-radius: 0 0 3px 3px;
+            color: #aaa;
+            margin: 0 -14px;
+            z-index: 2;
+            padding-bottom: 8px;
+            font-size: 10px;
+        }
+
+        .black-key:hover {
+            background: linear-gradient(to bottom, #4a5568 0%, #2d3748 100%);
+        }
+
+        .black-key.active {
+            background: var(--amber-deep);
+            color: var(--text-on-amber);
+            transform: translateY(2px);
+            box-shadow: 0 0 10px var(--amber-shadow);
+        }
+
+        .keyboard-info {
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--text-muted);
+            font-size: var(--font-size-sm);
+        }
+
+        /* ── Recording Controls ── */
+        .recording-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .record-btn {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .record-btn.recording {
+            background: var(--danger-deep);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0   rgba(239, 68, 68, 0.7); }
+            70%  { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);   }
+            100% { box-shadow: 0 0 0 0   rgba(239, 68, 68, 0);   }
+        }
+
+        /* ── Sequence Controls ── */
+        .sequence-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .tone-duration-edit {
+            width: 60px;
+            padding: 3px 6px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            font-size: var(--font-size-xs);
+            font-family: var(--font-mono);
+            text-align: center;
+            background: var(--input-bg);
+            color: var(--text);
+        }
+
+        .tone-duration-edit:focus {
+            outline: none;
+            border-color: var(--amber);
+            box-shadow: 0 0 0 2px var(--amber-glow);
+        }
+
+        /* ── Section Cards ── */
+        .section {
+            background: var(--bg-raised);
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+
+        .section h2 {
+            color: var(--text-secondary);
+            margin-bottom: 18px;
+            font-size: var(--font-size-lg);
+            border-bottom: 2px solid var(--amber);
+            padding-bottom: 10px;
+        }
+
+        .tone-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto auto;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .tone-controls .btn {
+            margin-top: 22px; /* align button with inputs, below label height */
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            font-size: var(--font-size-sm);
+        }
+
+        /* ── Form Controls ── */
+        input[type="number"],
+        input[type="text"],
+        textarea,
+        select {
+            padding: 0.65rem 0.85rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-base);
+            font-family: var(--font-body);
+            color: var(--text);
+            background: var(--input-bg);
+            width: 100%;
+            transition: border-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--amber);
+            box-shadow: 0 0 0 3px var(--amber-glow);
+        }
+
+        textarea {
+            font-family: var(--font-mono);
+            font-size: var(--font-size-sm);
+            resize: vertical;
+        }
+
+        select { cursor: pointer; }
+
+        /* ── Buttons ── */
+        .btn {
+            padding: 0.6rem 1.1rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-family: var(--font-body);
+            cursor: pointer;
+            transition: all var(--duration) var(--ease);
+            font-size: var(--font-size-sm);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 38px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--amber);
+            color: var(--text-on-amber);
+        }
+        .btn-primary:hover {
+            background: var(--amber-bright);
+            box-shadow: var(--shadow-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-inset);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background: var(--border);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: var(--danger-deep);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #16a34a;
+            transform: translateY(-1px);
+        }
+
+        /* ── Tone List ── */
+        .tone-list {
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+            background: var(--bg-inset);
+        }
+
+        .tone-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: var(--bg-surface);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-sm);
+            border-left: 3px solid var(--amber);
+            transition: all var(--duration) var(--ease);
+            cursor: pointer;
+        }
+
+        .tone-item:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow-md);
+            background: var(--selected);
+        }
+
+        .tone-item.dragging {
+            opacity: 0.35;
+            box-shadow: none;
+        }
+
+        .tone-item.drag-over {
+            border-top: 2px solid var(--amber);
+            transform: translateX(0);
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: var(--text-muted);
+            font-size: 16px;
+            padding: 0 10px 0 0;
+            user-select: none;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        .drag-handle:active { cursor: grabbing; }
+
+        .tone-info { flex: 1; }
+
+        .tone-freq {
+            font-weight: 700;
+            color: var(--text);
+            font-size: var(--font-size-base);
+            font-family: var(--font-mono);
+        }
+
+        .tone-duration {
+            color: var(--text-muted);
+            font-size: var(--font-size-xs);
+            font-family: var(--font-mono);
+            margin-top: 2px;
+        }
+
+        .tone-actions { display: flex; gap: 6px; }
+
+        /* ── Preset Buttons ── */
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+
+        .preset-btn {
+            padding: 0.4rem 0.5rem;
+            background: var(--bg-inset);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--font-size-xs);
+            font-family: var(--font-mono);
+            font-weight: 700;
+            text-align: center;
+            transition: all var(--duration) var(--ease);
+        }
+
+        .preset-btn:hover {
+            border-color: var(--amber);
+            color: var(--amber);
+            background: var(--amber-glow);
+            transform: translateY(-1px);
+        }
+
+        /* ── Playback Controls ── */
+        .playback-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .export-section { grid-column: 1 / -1; }
+
+        /* ── Code Output ── */
+        .code-output {
+            background: var(--bg-inset);
+            color: var(--text);
+            padding: 20px;
+            border-radius: var(--radius);
+            font-family: var(--font-mono);
+            font-size: var(--font-size-sm);
+            white-space: pre-wrap;
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--amber);
+            color: var(--text-on-amber);
+            border: none;
+            padding: 5px 12px;
+            border-radius: var(--radius-xs);
+            cursor: pointer;
+            font-size: var(--font-size-xs);
+            font-family: var(--font-body);
+            font-weight: 600;
+            transition: background var(--duration) var(--ease);
+        }
+
+        .copy-btn:hover { background: var(--amber-bright); }
+
+        /* ── Misc ── */
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            font-style: italic;
+            padding: 40px;
+            font-size: var(--font-size-sm);
+        }
+
+        .pattern-name-input { margin-bottom: 15px; }
+        .pattern-name-input input { width: 100%; }
+
+        .note-indicator {
+            font-size: var(--font-size-xs);
+            font-family: var(--font-mono);
+            color: var(--amber);
+            margin-top: 4px;
+            min-height: 16px;
+        }
+
+        .meta-text {
+            color: var(--text-muted);
+            font-size: var(--font-size-sm);
+        }
+
+        .synth-info {
+            font-size: var(--font-size-xs);
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ── Sequence Presets ── */
+        .sequence-preset-section {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .sequence-preset-section h3 {
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sequence-preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .seq-preset-btn {
+            padding: 5px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-raised);
+            color: var(--text);
+            font-size: var(--font-size-sm);
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+
+        .seq-preset-btn:hover {
+            background: var(--amber-glow);
+            border-color: var(--amber);
+            color: var(--amber-deep);
+        }
+
+        /* ── Confirm Dialog ── */
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-overlay.visible {
+            display: flex;
+        }
+
+        .confirm-box {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px 28px 22px;
+            max-width: 360px;
+            width: 90%;
+            box-shadow: var(--shadow-md);
+            text-align: center;
+        }
+
+        .confirm-box h3 {
+            margin: 0 0 10px;
+            font-size: var(--font-size-lg);
+            color: var(--text);
+        }
+
+        .confirm-box p {
+            margin: 0 0 22px;
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+        }
+
+        .confirm-box .btn-row {
+            justify-content: center;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 700px) {
+            .controls { grid-template-columns: 1fr; }
+            .tone-controls { grid-template-columns: 1fr 1fr; }
+            .tone-controls .btn { grid-column: 1 / -1; }
+            h1 { font-size: var(--font-size-xl); }
+            .container { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 BNDZR Sound Designer</h1>
+        
+        <div class="section keyboard-section">
+            <h2>🎹 Virtual Keyboard</h2>
+            <div class="keyboard-info">
+                Press keys Q-P (top row) or A-L + Ö (bottom row) to play tones • Hold to sustain • Click Record to capture your performance
+            </div>
+            
+            <div class="piano-keyboard">
+                <div class="key white-key" data-key="a" data-freq="262">C4<br>A</div>
+                <div class="key black-key" data-key="w" data-freq="277">C#<br>W</div>
+                <div class="key white-key" data-key="s" data-freq="294">D4<br>S</div>
+                <div class="key black-key" data-key="e" data-freq="311">D#<br>E</div>
+                <div class="key white-key" data-key="d" data-freq="330">E4<br>D</div>
+                <div class="key white-key" data-key="f" data-freq="349">F4<br>F</div>
+                <div class="key black-key" data-key="t" data-freq="370">F#<br>T</div>
+                <div class="key white-key" data-key="g" data-freq="392">G4<br>G</div>
+                <div class="key black-key" data-key="y" data-freq="415">G#<br>Y</div>
+                <div class="key white-key" data-key="h" data-freq="440">A4<br>H</div>
+                <div class="key black-key" data-key="u" data-freq="466">A#<br>U</div>
+                <div class="key white-key" data-key="j" data-freq="494">B4<br>J</div>
+                <div class="key white-key" data-key="k" data-freq="523">C5<br>K</div>
+                <div class="key black-key" data-key="o" data-freq="554">C#<br>O</div>
+                <div class="key white-key" data-key="l" data-freq="587">D5<br>L</div>
+                <div class="key black-key" data-key="p" data-freq="622">D#<br>P</div>
+                <div class="key white-key" data-key="ö" data-freq="659">E5<br>Ö</div>
+            </div>
+
+            <div class="recording-controls">
+                <button class="btn record-btn" id="record-btn" onclick="toggleRecording()">
+                    🔴 Start Recording
+                </button>
+                <button class="btn btn-secondary" onclick="clearRecording()">
+                    🗑️ Clear Recording
+                </button>
+                <button class="btn btn-success" onclick="playSequence()">
+                    ▶️ Play Sequence
+                </button>
+                <button class="btn btn-danger" onclick="stopAudio()">
+                    ⏹️ Stop All
+                </button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="section">
+                <h2>🎹 Add Tone</h2>
+                
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(262, 200)">C4 (262Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(294, 200)">D4 (294Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(330, 200)">E4 (330Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(349, 200)">F4 (349Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(392, 200)">G4 (392Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(440, 200)">A4 (440Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(494, 200)">B4 (494Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(523, 200)">C5 (523Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(659, 200)">E5 (659Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(784, 200)">G5 (784Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(1047, 200)">C6 (1047Hz)</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(1000, 300)">1kHz</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(2000, 300)">2kHz</button>
+                    <button class="preset-btn" onclick="setFrequencyAndPreview(3000, 300)">3kHz</button>
+                    <button class="preset-btn" onclick="addPause()" style="border-color:var(--border);color:var(--text-secondary);font-style:italic;">⏸ PAUSE</button>
+                </div>
+
+                <div class="tone-controls">
+                    <div class="input-group">
+                        <label for="frequency">Freq. (Hz)</label>
+                        <input type="number" id="frequency" value="1000" min="50" max="20000">
+                        <div class="note-indicator" id="note-indicator"></div>
+                    </div>
+                    <div class="input-group">
+                        <label for="duration">Dur. (ms)</label>
+                        <input type="number" id="duration" value="200" min="1" max="5000">
+                    </div>
+                    <button class="btn btn-secondary" onclick="testTone()">
+                        🔊 Test
+                    </button>
+                    <button class="btn btn-primary" onclick="addTone()">
+                        ➕ Add
+                    </button>
+                </div>
+
+                <div class="sequence-preset-section">
+                    <h3>Add Tone Sequence</h3>
+                    <div class="sequence-preset-buttons">
+                        <button class="seq-preset-btn" onclick="addSequencePreset('CONFIRM')">✅ Confirm</button>
+                        <button class="seq-preset-btn" onclick="addSequencePreset('DENY')">❌ Deny</button>
+                        <button class="seq-preset-btn" onclick="addSequencePreset('ERROR')">⚠️ Error</button>
+                        <button class="seq-preset-btn" onclick="addSequencePreset('ALERT')">🚨 Alert</button>
+                        <button class="seq-preset-btn" onclick="addSequencePreset('SUCCESS')">🎉 Success</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🎼 Tone Sequence</h2>
+                <div class="sequence-controls">
+                    <button class="btn btn-success" onclick="playSequence()">
+                        ▶️ Play All
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllTones()">
+                        🗑️ Clear All
+                    </button>
+                    <span class="meta-text">
+                        Total: <span id="sequence-count">0</span> tones
+                    </span>
+                </div>
+                <div id="tone-list" class="tone-list">
+                    <div class="empty-state">
+                        Add tones to create your sound pattern
+                    </div>
+                </div>
+                <div class="input-group" style="margin-top: 14px;">
+                    <label for="synth-mode">Sound Mode</label>
+                    <select id="synth-mode" onchange="setSynthMode(this.value)">
+                        <option value="buzzer">🔊 Real Buzzer (Sharp)</option>
+                        <option value="piezo">⚡ Piezo Buzzer (Harsh)</option>
+                        <option value="smooth">🎵 Smooth Synth</option>
+                        <option value="chip">🎮 8-bit Chip</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section wide-section">
+                <h2>📥 Import Code</h2>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label for="import-code">Paste C++ Tone Array (µs or ms):</label>
+                    <textarea id="import-code" rows="6" placeholder="Paste your Buzzer::Tone array here...&#10;&#10;Example (microseconds):&#10;static const Buzzer::Tone PATTERN_TONES[] = {&#10;    {440, 200000}, {523, 300000}, {659, 250000}&#10;};"></textarea>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="importCode()">
+                        📥 Import Tones
+                    </button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('import-code').value = ''">
+                        🗑️ Clear Text
+                    </button>
+                </div>
+            </div>
+
+            <div class="section wide-section export-section">
+                <h2>📤 Export Code (Microseconds)</h2>
+                <div class="pattern-name-input">
+                    <label for="pattern-name">Pattern Name:</label>
+                    <input type="text" id="pattern-name" value="CUSTOM_PATTERN" placeholder="Enter pattern name">
+                </div>
+                <div class="code-output" id="code-output">
+                    <button class="copy-btn" onclick="copyCode()">📋 Copy</button>
+                    // Add some tones to generate code
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear All Confirmation Dialog -->
+    <div class="confirm-overlay" id="clearAllOverlay">
+        <div class="confirm-box">
+            <h3>🗑️ Clear All Tones?</h3>
+            <p>This will remove all <span id="clearAllCount">0</span> tones from the sequence. This cannot be undone.</p>
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="hideClearAllConfirm()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmClearAll()">Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tones = [];
+        let audioContext = null;
+        let currentOscillator = null;
+        let isPlaying = false;
+        
+        // Keyboard and recording state
+        let activeKeys = new Set();
+        let keyStartTimes = new Map();
+        let isRecording = false;
+        let currentKeyOscillators = new Map();
+        let recordingStartTime = 0;
+        let lastToneEndTime = 0;
+        
+        // Synth settings
+        let synthMode = 'buzzer'; // buzzer, smooth, harsh, piezo
+
+        // Initialize audio context
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Note frequency mapping for display
+        const noteFrequencies = {
+            262: 'C4', 294: 'D4', 330: 'E4', 349: 'F4', 392: 'G4', 440: 'A4', 494: 'B4',
+            523: 'C5', 587: 'D5', 659: 'E5', 698: 'F5', 784: 'G5', 880: 'A5', 988: 'B5',
+            1047: 'C6', 1175: 'D6', 1319: 'E6', 1397: 'F6', 1568: 'G6'
+        };
+
+        function getNoteName(frequency) {
+            const closest = Object.keys(noteFrequencies).reduce((prev, curr) => 
+                Math.abs(curr - frequency) < Math.abs(prev - frequency) ? curr : prev
+            );
+            if (Math.abs(closest - frequency) < 10) {
+                return noteFrequencies[closest];
+            }
+            return '';
+        }
+
+        function setSynthMode(mode) {
+            synthMode = mode;
+            console.log('Synth mode changed to:', mode);
+        }
+
+        function createToneOscillator(frequency, duration, startTime = 0) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + startTime);
+            
+            // Different synth modes
+            switch (synthMode) {
+                case 'buzzer':
+                    // Sharp on/off like real buzzer
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime + startTime);
+                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime + startTime + 0.001); // Almost instant on
+                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime + startTime + (duration / 1000) - 0.001);
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime + startTime + (duration / 1000)); // Instant off
+                    break;
+                    
+                case 'piezo':
+                    // Harsh piezo buzzer with harmonics
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime + startTime);
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + startTime + 0.002); // Slightly harsh attack
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + startTime + (duration / 1000) - 0.002);
+                    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + startTime + (duration / 1000));
+                    // Add some distortion-like effect by modulating
+                    const lfo = audioContext.createOscillator();
+                    const lfoGain = audioContext.createGain();
+                    lfo.frequency.setValueAtTime(0.5, audioContext.currentTime + startTime);
+                    lfo.connect(lfoGain);
+                    lfoGain.gain.setValueAtTime(2, audioContext.currentTime + startTime);
+                    lfoGain.connect(oscillator.frequency);
+                    lfo.start(audioContext.currentTime + startTime);
+                    lfo.stop(audioContext.currentTime + startTime + (duration / 1000));
+                    break;
+                    
+                case 'smooth':
+                    // Smooth synth with gentle attack/decay
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime + startTime);
+                    gainNode.gain.linearRampToValueAtTime(0.12, audioContext.currentTime + startTime + 0.05);
+                    gainNode.gain.setValueAtTime(0.12, audioContext.currentTime + startTime + (duration / 1000) - 0.05);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + startTime + (duration / 1000));
+                    break;
+                    
+                case 'chip':
+                    // 8-bit style
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime + startTime);
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime + startTime + 0.005);
+                    gainNode.gain.exponentialRampToValueAtTime(0.08, audioContext.currentTime + startTime + 0.02);
+                    gainNode.gain.setValueAtTime(0.08, audioContext.currentTime + startTime + (duration / 1000) - 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + startTime + (duration / 1000));
+                    break;
+                    
+                default:
+                    // Fallback to buzzer mode
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime + startTime);
+            }
+            
+            return { oscillator, gainNode };
+        }
+
+        function importCode() {
+            const codeText = document.getElementById('import-code').value.trim();
+            if (!codeText) {
+                console.log('No code provided for import');
+                return;
+            }
+            
+            try {
+                // Extract tone data using regex
+                const toneRegex = /\{\s*(\d+)\s*,\s*(\d+)\s*\}/g;
+                const matches = [];
+                let match;
+                
+                while ((match = toneRegex.exec(codeText)) !== null) {
+                    const frequency = parseInt(match[1]);
+                    const durationValue = parseInt(match[2]);
+                    
+                    // Auto-detect microseconds vs milliseconds
+                    // Values > 10000 are likely microseconds, convert to ms
+                    const duration = durationValue > 10000 ? Math.round(durationValue / 1000) : durationValue;
+                    
+                    matches.push({ frequency, duration });
+                }
+                
+                if (matches.length === 0) {
+                    console.log('No valid tone patterns found in import text');
+                    return;
+                }
+                
+                // Import the tones (replace existing ones)
+                tones.splice(0, tones.length, ...matches);
+                updateToneList();
+                updateCodeOutput();
+                
+                // Clear import text
+                document.getElementById('import-code').value = '';
+                
+                console.log(`Successfully imported ${matches.length} tones (auto-converted to ms for UI)`);
+                
+            } catch (error) {
+                console.error('Import error:', error);
+            }
+        }
+
+        function updateNoteIndicator() {
+            const freq = parseInt(document.getElementById('frequency').value);
+            const note = getNoteName(freq);
+            document.getElementById('note-indicator').textContent = note ? `♪ ${note}` : '';
+        }
+
+        function setFrequency(freq) {
+            document.getElementById('frequency').value = freq;
+            updateNoteIndicator();
+        }
+
+        function setFrequencyAndPreview(freq, duration = 200) {
+            setFrequency(freq);
+            document.getElementById('duration').value = duration;
+            testSingleTone(freq, duration);
+        }
+
+        function addPause() {
+            const duration = parseInt(document.getElementById('duration').value);
+            const dur = (duration >= 1 && duration <= 5000) ? duration : 200;
+            tones.push({ frequency: 0, duration: dur });
+            updateToneList();
+            updateCodeOutput();
+        }
+
+        function addTone() {
+            const frequency = parseInt(document.getElementById('frequency').value);
+            const duration = parseInt(document.getElementById('duration').value);
+
+            if (frequency < 50 || frequency > 20000) {
+                console.log('Invalid frequency range - must be 50-20000 Hz');
+                return;
+            }
+            
+            if (duration < 1 || duration > 5000) {
+                console.log('Invalid duration range - must be 1-5000 ms');
+                return;
+            }
+
+            tones.push({ frequency, duration });
+            updateToneList();
+            updateCodeOutput();
+        }
+
+        function removeTone(index) {
+            tones.splice(index, 1);
+            updateToneList();
+            updateCodeOutput();
+        }
+
+        let dragSrcIndex = null;
+
+        function dragStart(event, index) {
+            dragSrcIndex = index;
+            event.dataTransfer.effectAllowed = 'move';
+            event.currentTarget.classList.add('dragging');
+        }
+
+        function dragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            document.querySelectorAll('.tone-item').forEach(el => el.classList.remove('drag-over'));
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function dragDrop(event, targetIndex) {
+            event.preventDefault();
+            if (dragSrcIndex !== null && dragSrcIndex !== targetIndex) {
+                const moved = tones.splice(dragSrcIndex, 1)[0];
+                tones.splice(targetIndex, 0, moved);
+                updateToneList();
+                updateCodeOutput();
+            }
+        }
+
+        function dragEnd(event) {
+            dragSrcIndex = null;
+            document.querySelectorAll('.tone-item').forEach(el => {
+                el.classList.remove('dragging', 'drag-over');
+            });
+        }
+
+        function moveTone(index, direction) {
+            if (direction === 'up' && index > 0) {
+                [tones[index], tones[index - 1]] = [tones[index - 1], tones[index]];
+            } else if (direction === 'down' && index < tones.length - 1) {
+                [tones[index], tones[index + 1]] = [tones[index + 1], tones[index]];
+            }
+            updateToneList();
+            updateCodeOutput();
+        }
+
+        function updateToneList() {
+            const container = document.getElementById('tone-list');
+            
+            if (tones.length === 0) {
+                container.innerHTML = '<div class="empty-state">Add tones to create your sound pattern</div>';
+                document.getElementById('sequence-count').textContent = '0';
+                return;
+            }
+
+            document.getElementById('sequence-count').textContent = tones.length;
+
+            container.innerHTML = tones.map((tone, index) => {
+                const isPause = tone.frequency === 0;
+                const displayText = isPause ? 'Pause' : `${tone.frequency} Hz ${getNoteName(tone.frequency) ? '♪ ' + getNoteName(tone.frequency) : ''}`;
+                const pauseStyle = isPause ? 'opacity:0.55;border-left-color:var(--border)' : '';
+
+                return `
+                    <div class="tone-item" draggable="true" data-index="${index}"
+                         ondragstart="dragStart(event, ${index})"
+                         ondragover="dragOver(event)"
+                         ondrop="dragDrop(event, ${index})"
+                         ondragend="dragEnd(event)"
+                         title="${isPause ? 'Pause/Rest' : 'Drag to reorder · Click to preview'}" style="${pauseStyle}">
+                        <span class="drag-handle" title="Drag to reorder">⠿</span>
+                        <div class="tone-info" ${isPause ? '' : `onclick="testSingleTone(${tone.frequency}, ${tone.duration})"`} style="${isPause ? '' : 'cursor:pointer'}">
+                            <div class="tone-freq">${displayText}</div>
+                            <div class="tone-duration">
+                                <input type="number" class="tone-duration-edit" value="${tone.duration}"
+                                       min="1" max="5000" step="1"
+                                       onchange="updateToneDuration(${index}, this.value)"
+                                       onclick="event.stopPropagation()" title="Duration in ms"> ms
+                            </div>
+                        </div>
+                        <div class="tone-actions" onclick="event.stopPropagation()">
+                            ${!isPause ? `<button class="btn btn-secondary" onclick="testSingleTone(${tone.frequency}, ${tone.duration})" title="Test this tone">🔊</button>` : '<div style="width: 40px;"></div>'}
+                            <button class="btn btn-secondary" onclick="moveTone(${index}, 'up')" title="Move up" ${index === 0 ? 'disabled' : ''}>↑</button>
+                            <button class="btn btn-secondary" onclick="moveTone(${index}, 'down')" title="Move down" ${index === tones.length - 1 ? 'disabled' : ''}>↓</button>
+                            <button class="btn btn-danger" onclick="removeTone(${index})" title="Remove">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateToneDuration(index, newDuration) {
+            const duration = parseInt(newDuration);
+            if (duration >= 1 && duration <= 5000) {
+                tones[index].duration = duration;
+                updateCodeOutput();
+            }
+        }
+
+        function clearAllTones() {
+            if (tones.length === 0) return;
+            document.getElementById('clearAllCount').textContent = tones.length;
+            document.getElementById('clearAllOverlay').classList.add('visible');
+        }
+
+        function hideClearAllConfirm() {
+            document.getElementById('clearAllOverlay').classList.remove('visible');
+        }
+
+        function confirmClearAll() {
+            hideClearAllConfirm();
+            tones.splice(0, tones.length);
+            updateToneList();
+            updateCodeOutput();
+        }
+
+        const SEQUENCE_PRESETS = {
+            CONFIRM:  [{frequency: 1000, duration: 100}, {frequency: 1200, duration: 100}],
+            DENY:     [{frequency: 1200, duration: 100}, {frequency: 1000, duration: 100}],
+            ERROR:    [{frequency: 784,  duration: 150}, {frequency: 587,  duration: 150}, {frequency: 392, duration: 300}],
+            ALERT:    [{frequency: 1500, duration: 200}, {frequency: 800,  duration: 200}, {frequency: 1500, duration: 200},
+                       {frequency: 800,  duration: 200}, {frequency: 1500, duration: 200}, {frequency: 800, duration: 200}],
+            SUCCESS:  [{frequency: 523,  duration: 80},  {frequency: 659,  duration: 80},  {frequency: 784, duration: 80}, {frequency: 1047, duration: 200}],
+        };
+
+        function addSequencePreset(name) {
+            const preset = SEQUENCE_PRESETS[name];
+            if (!preset) return;
+            preset.forEach(t => tones.push({ frequency: t.frequency, duration: t.duration }));
+            updateToneList();
+            updateCodeOutput();
+        }
+
+        function clearRecording() {
+            if (isRecording) toggleRecording();
+            if (tones.length === 0) return;
+            document.getElementById('clearAllCount').textContent = tones.length;
+            document.getElementById('clearAllOverlay').classList.add('visible');
+        }
+
+        function updateCodeOutput() {
+            const patternName = document.getElementById('pattern-name').value.toUpperCase().replace(/[^A-Z0-9_]/g, '_') || 'CUSTOM_PATTERN';
+            
+            if (tones.length === 0) {
+                document.getElementById('code-output').innerHTML =
+                    `<button class="copy-btn" onclick="copyCode()">📋 Copy</button>\n// Add some tones to generate code`;
+                return;
+            }
+
+            // Convert ms to microseconds for export (multiply by 1000)
+            const tonesCode = tones.map(tone => `    {${tone.frequency}, ${tone.duration * 1000}}`).join(',\n');
+            const code = `static const Buzzer::Tone ${patternName}_TONES[] = {\n${tonesCode}\n};`;
+
+            document.getElementById('code-output').innerHTML =
+                `<button class="copy-btn" onclick="copyCode()">📋 Copy</button>\n${code}`;
+        }
+
+        function copyCode() {
+            const codeElement = document.getElementById('code-output');
+            const code = codeElement.textContent.replace('📋 Copy', '').trim();
+            
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = codeElement.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        function testTone() {
+            const frequency = parseInt(document.getElementById('frequency').value);
+            const duration = parseInt(document.getElementById('duration').value);
+            testSingleTone(frequency, duration);
+        }
+
+        function testSingleTone(frequency, duration) {
+            initAudio();
+            stopAudio();
+
+            const { oscillator } = createToneOscillator(frequency, duration);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration / 1000);
+            
+            currentOscillator = oscillator;
+        }
+
+        async function playSequence() {
+            if (tones.length === 0) {
+                console.log('No tones to play');
+                return;
+            }
+
+            initAudio();
+            stopAudio();
+            isPlaying = true;
+
+            for (let i = 0; i < tones.length && isPlaying; i++) {
+                const tone = tones[i];
+                
+                if (tone.frequency === 0) {
+                    // This is a pause - just wait
+                    await new Promise(resolve => setTimeout(resolve, tone.duration));
+                } else {
+                    // Play the tone using the selected synth mode
+                    const { oscillator } = createToneOscillator(tone.frequency, tone.duration);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + tone.duration / 1000);
+                    
+                    currentOscillator = oscillator;
+                    
+                    // Wait for this tone to finish completely
+                    await new Promise(resolve => setTimeout(resolve, tone.duration));
+                }
+            }
+            
+            isPlaying = false;
+        }
+
+        function stopAudio() {
+            isPlaying = false;
+            
+            // Stop sequence playback
+            if (currentOscillator) {
+                try {
+                    currentOscillator.stop();
+                } catch (e) {
+                    // Oscillator might already be stopped
+                }
+                currentOscillator = null;
+            }
+            
+            // Stop all keyboard tones
+            activeKeys.forEach(key => stopKeyTone(key));
+            
+            // Clear any remaining oscillators
+            currentKeyOscillators.forEach(({ oscillator }) => {
+                try {
+                    oscillator.stop();
+                } catch (e) {
+                    // Oscillator might already be stopped
+                }
+            });
+            currentKeyOscillators.clear();
+        }
+
+        // Keyboard functionality
+        function getKeyMapping() {
+            return new Map([
+                ['a', 262], ['w', 277], ['s', 294], ['e', 311], ['d', 330], ['f', 349], ['t', 370],
+                ['g', 392], ['y', 415], ['h', 440], ['u', 466], ['j', 494], ['k', 523], 
+                ['o', 554], ['l', 587], ['p', 622], ['ö', 659], [';', 659], ['é', 659]
+            ]);
+        }
+
+        function startKeyTone(key, frequency) {
+            if (activeKeys.has(key)) return; // Prevent key repeat
+            
+            initAudio();
+            
+            // Record pause if recording and there was a gap between tones
+            if (isRecording && activeKeys.size === 0 && lastToneEndTime > 0 && tones.length > 0) {
+                const now = Date.now();
+                const pauseDuration = now - lastToneEndTime;
+                if (pauseDuration > 100) { // Only record pauses longer than 100ms
+                    tones.push({ frequency: 0, duration: Math.round(pauseDuration) });
+                    updateToneList();
+                    updateCodeOutput();
+                }
+            }
+            
+            activeKeys.add(key);
+            keyStartTimes.set(key, Date.now());
+            
+            // Visual feedback
+            const keyElement = document.querySelector(`[data-key="${key}"]`);
+            if (keyElement) keyElement.classList.add('active');
+            
+            // Create oscillator for live playing (sustained)
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            
+            // Use synth mode for attack characteristics, but sustain for live play
+            switch (synthMode) {
+                case 'buzzer':
+                case 'piezo':
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime + 0.001);
+                    break;
+                case 'smooth':
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.12, audioContext.currentTime + 0.05);
+                    break;
+                case 'chip':
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime + 0.005);
+                    break;
+                default:
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            }
+            
+            oscillator.start(audioContext.currentTime);
+            currentKeyOscillators.set(key, { oscillator, gainNode });
+        }
+
+        function stopKeyTone(key) {
+            if (!activeKeys.has(key)) return;
+            
+            const startTime = keyStartTimes.get(key);
+            const duration = Date.now() - startTime;
+            
+            // Visual feedback
+            const keyElement = document.querySelector(`[data-key="${key}"]`);
+            if (keyElement) keyElement.classList.remove('active');
+            
+            // Stop oscillator with synth mode characteristics
+            const oscData = currentKeyOscillators.get(key);
+            if (oscData) {
+                const { oscillator, gainNode } = oscData;
+                
+                switch (synthMode) {
+                    case 'buzzer':
+                        // Sharp cutoff like real buzzer
+                        gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.001);
+                        oscillator.stop(audioContext.currentTime + 0.001);
+                        break;
+                    case 'piezo':
+                        // Slightly harsh release
+                        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.01);
+                        oscillator.stop(audioContext.currentTime + 0.01);
+                        break;
+                    case 'smooth':
+                        // Gentle release
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+                        oscillator.stop(audioContext.currentTime + 0.1);
+                        break;
+                    case 'chip':
+                        // Quick 8-bit style release
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.03);
+                        oscillator.stop(audioContext.currentTime + 0.03);
+                        break;
+                    default:
+                        gainNode.gain.linearRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
+                        oscillator.stop(audioContext.currentTime + 0.05);
+                }
+                
+                currentKeyOscillators.delete(key);
+            }
+            
+            // Record if recording is active
+            if (isRecording && duration >= 50) { // Minimum 50ms to record
+                const keyMapping = getKeyMapping();
+                const frequency = keyMapping.get(key);
+                if (frequency) {
+                    tones.push({ frequency, duration: Math.round(duration) });
+                    updateToneList();
+                    updateCodeOutput();
+                    lastToneEndTime = Date.now(); // Track when this tone ended
+                }
+            }
+            
+            activeKeys.delete(key);
+            keyStartTimes.delete(key);
+        }
+
+        function toggleRecording() {
+            const btn = document.getElementById('record-btn');
+            isRecording = !isRecording;
+            
+            if (isRecording) {
+                btn.textContent = '⏹️ Stop Recording';
+                btn.classList.add('recording');
+                recordingStartTime = Date.now();
+                lastToneEndTime = 0; // Reset - don't set to Date.now() to avoid initial pause
+                // Clear any active keys when starting recording
+                activeKeys.forEach(key => stopKeyTone(key));
+            } else {
+                btn.textContent = '🔴 Start Recording';
+                btn.classList.remove('recording');
+                // Stop any active keys when stopping recording
+                activeKeys.forEach(key => stopKeyTone(key));
+                lastToneEndTime = 0;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('frequency').addEventListener('input', updateNoteIndicator);
+        document.getElementById('pattern-name').addEventListener('input', updateCodeOutput);
+
+        // Keyboard event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; // Don't interfere with input fields
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                playSequence();
+                return;
+            }
+
+            const key = e.key.toLowerCase();
+            const keyMapping = getKeyMapping();
+
+            if (keyMapping.has(key)) {
+                e.preventDefault();
+                const frequency = keyMapping.get(key);
+                startKeyTone(key, frequency);
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            const key = e.key.toLowerCase();
+            const keyMapping = getKeyMapping();
+            
+            if (keyMapping.has(key)) {
+                e.preventDefault();
+                stopKeyTone(key);
+            }
+        });
+
+        // Mouse events for virtual keyboard
+        document.querySelectorAll('.key').forEach(keyElement => {
+            const key = keyElement.dataset.key;
+            const frequency = parseInt(keyElement.dataset.freq);
+            
+            keyElement.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                startKeyTone(key, frequency);
+            });
+            
+            keyElement.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                stopKeyTone(key);
+            });
+            
+            keyElement.addEventListener('mouseleave', (e) => {
+                if (activeKeys.has(key)) {
+                    stopKeyTone(key);
+                }
+            });
+        });
+
+        // Prevent context menu on piano keys
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.classList.contains('key')) {
+                e.preventDefault();
+            }
+        });
+
+        // Close Clear All dialog on backdrop click
+        document.getElementById('clearAllOverlay').addEventListener('click', function(e) {
+            if (e.target === this) hideClearAllConfirm();
+        });
+
+        // Initialize
+        updateNoteIndicator();
+        updateToneList();
+        updateCodeOutput();
+
+        // Handle audio context resume for browser policies
+        document.addEventListener('click', () => {
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }, { once: true });
+    </script>
+</body>
+</html>
