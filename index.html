@@ -804,22 +804,6 @@
                 </div>
             </div>
 
-            <div class="section wide-section">
-                <h2>📥 Import Code</h2>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label for="import-code">Paste C++ Tone Array (µs or ms):</label>
-                    <textarea id="import-code" rows="6" placeholder="Paste your Buzzer::Tone array here...&#10;&#10;Example (microseconds):&#10;static const Buzzer::Tone PATTERN_TONES[] = {&#10;    {440, 200000}, {523, 300000}, {659, 250000}&#10;};"></textarea>
-                </div>
-                <div class="btn-row">
-                    <button class="btn btn-primary" onclick="importCode()">
-                        📥 Import Tones
-                    </button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('import-code').value = ''">
-                        🗑️ Clear Text
-                    </button>
-                </div>
-            </div>
-
             <div class="section wide-section export-section">
                 <h2>📤 Export Code (Microseconds)</h2>
                 <div class="pattern-name-input">
@@ -829,6 +813,22 @@
                 <div class="code-output" id="code-output">
                     <button class="copy-btn" onclick="copyCode()">📋 Copy</button>
                     // Add some tones to generate code
+                </div>
+            </div>
+
+            <div class="section wide-section">
+                <h2>📥 Import Code</h2>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label for="import-code">Paste C++ Tone Array (µs):</label>
+                    <textarea id="import-code" rows="6" placeholder="Paste your Buzzer::Tone array here...&#10;&#10;Example (microseconds):&#10;static const Buzzer::Tone PATTERN_TONES[] = {&#10;    {440, 200000}, {523, 300000}, {659, 250000}&#10;};"></textarea>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="importCode()">
+                        📥 Import Tones
+                    </button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('import-code').value = ''">
+                        🗑️ Clear Text
+                    </button>
                 </div>
             </div>
         </div>
@@ -974,10 +974,9 @@
                 while ((match = toneRegex.exec(codeText)) !== null) {
                     const frequency = parseInt(match[1]);
                     const durationValue = parseInt(match[2]);
-                    
-                    // Auto-detect microseconds vs milliseconds
-                    // Values > 10000 are likely microseconds, convert to ms
-                    const duration = durationValue > 10000 ? Math.round(durationValue / 1000) : durationValue;
+
+                    // Duration values are in microseconds — convert to ms for UI
+                    const duration = Math.round(durationValue / 1000);
                     
                     matches.push({ frequency, duration });
                 }
